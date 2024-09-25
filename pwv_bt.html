@@ -1,0 +1,231 @@
+<html>
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    
+  
+  <p>
+    
+    Pay with Venmo via BT
+    
+  </p>
+  
+  <button id="venmo-button">
+    pay with venmo
+  </button>
+  
+  <br><br><br><br>
+  
+<script src="https://js.braintreegateway.com/web/3.76.2/js/client.min.js"></script>
+<script src="https://js.braintreegateway.com/web/3.76.2/js/venmo.min.js"></script>
+<script src="https://js.braintreegateway.com/web/3.76.2/js/data-collector.min.js"></script>
+<script>
+  
+  //alert(document.URL);
+  
+  // creating new element
+const newElement = document.createElement('p')
+newElement.innerHTML = document.URL;
+
+// adding a new element at the end of the body
+document.body.appendChild(newElement)
+  
+  var venmoButton = document.getElementById('venmo-button');
+
+  
+  // Create a client.
+  braintree.client.create({
+    authorization: 'sandbox_jy84bwfk_n3nd5sv973thghr3'
+  }, function(clientErr, clientInstance) {
+    // Stop if there was a problem creating the client.
+    // This could happen if there is a network error or if the authorization
+    // is invalid.
+    if (clientErr) {
+      console.error('Error creating client:', clientErr);
+      return;
+    }
+    // Create a Venmo component.
+    braintree.venmo.create({
+      client: clientInstance,
+      collectCustomerBillingAddress: true,
+      collectCustomerShippingAddress: true,
+      allowDesktop: true,
+      profileId: "1953896702662410263",
+      //allowDesktopWebLogin: true,
+      //mobileWebFallBack: true,
+      //ignoreHistoryChanges: true,
+      allowWebviews: true,
+      //requireManualReturn: true,
+      //useRedirectForIOS:true,
+      //deepLinkReturnUrl: 'https://glitch.com/?test=1&abc=123',
+      paymentMethodUsage: 'single_use', // available in v3.77.0+  // multi_use
+      // Add allowNewBrowserTab: false if your checkout page does not support
+      // relaunching in a new tab when returning from the Venmo app. This can
+      // be omitted otherwise.
+       allowNewBrowserTab: false
+    }, function(venmoErr, venmoInstance) {
+      
+      window.venmoInstance = venmoInstance;
+      
+      //alert('venmo instance created');
+      alert(navigator.userAgent);
+      //alert(venmoInstance.hasTokenizationResult());
+      
+      console.log(venmoInstance);
+      if (venmoErr) {
+        console.error('Error creating Venmo:', venmoErr);
+        alert('Error creating Venmo:');
+        return;
+      }
+      // Verify browser support before proceeding.
+      if (!venmoInstance.isBrowserSupported()) {
+        
+        console.log('Browser does not support Venmo');
+        alert('Browser does not support Venmo');
+        return;
+      }
+      
+        displayVenmoButton(venmoInstance);
+
+      
+      braintree.dataCollector.create({
+        client: clientInstance
+      }, function(dataCollectorErr, dataCollectorInstance) {
+        if (dataCollectorErr) {
+          // Handle error in creation of data collector.
+          return;
+        }
+        // At this point, you should access the deviceData value and provide it
+        // to your server, e.g. by injecting it into your form as a hidden input.
+        console.log('Got device data:', dataCollectorInstance.deviceData);
+        //alert(dataCollectorInstance.deviceData);
+      });
+      
+      
+      /*
+      
+      venmoInstance.tokenize(function(tokenizeErr, payload) {
+        debugger;
+        if (tokenizeErr) {
+          debugger;
+          handleVenmoError(tokenizeErr);
+          console.log(tokenizeErr);
+        } else {
+          handleVenmoSuccess(payload);
+        }
+      });
+      
+      */
+      
+      // Check if tokenization results already exist. This occurs when your
+      // checkout page is relaunched in a new tab. This step can be omitted
+      // if allowNewBrowserTab is false.
+      
+      
+      
+      
+      if (venmoInstance.hasTokenizationResult()) {
+        
+        alert('inside hasTokenizationResult');
+        
+        venmoInstance.tokenize(function(tokenizeErr, payload) {
+          console.log("in hasTokenizationResult method")
+          if (tokenizeErr) {
+            handleVenmoError(tokenizeErr);
+          } else {
+            handleVenmoSuccess(payload);
+          }
+        });
+        return;
+      }
+      
+     
+      
+      
+    });
+  });
+
+  function handleVenmoError(err) {
+    
+    alert(err);
+    console.log(JSON.stringify(err));
+    
+    
+var elemDiv = document.createElement('div');
+elemDiv.style.cssText = 'position:absolute;width:100%;height:100%;';
+document.body.appendChild(elemDiv);
+elemDiv.innerHTML=JSON.stringify(err);
+    
+    // create XMLHttpRequest object
+    // const xhr1 = new XMLHttpRequest()
+    // open a POST request
+    // xhr1.open("POST", "https://webhook.site/7b187f4c-b000-4d40-8afc-d0f305e64d75")
+    // send JSON data to the remote server
+    // xhr1.send(JSON.stringify(err))
+    // triggered when the response is fully received
+    // xhr1.onload = function() {
+    //   console.log(xhr1.status)
+    // }
+    // // triggered due to a network-level error
+    // xhr1.onerror = function() {
+    //   console.log("Network error occurred")
+    // }
+  }
+  
+  function displayVenmoButton(venmoInstance) {
+  venmoButton.style.display = 'block';
+
+  venmoButton.addEventListener('click', function () {
+    venmoButton.disabled = true;
+
+    venmoInstance.tokenize(function (tokenizeErr, payload) {
+      
+      venmoButton.removeAttribute('disabled');
+
+      if (tokenizeErr) {
+        handleVenmoError(tokenizeErr);
+      } else {
+        handleVenmoSuccess(payload);
+      }
+    });
+  });
+}
+
+  function handleVenmoSuccess(payload) {
+    console.log(JSON.stringify(payload));
+    
+    var elemDiv = document.createElement('div');
+elemDiv.style.cssText = 'position:absolute;width:100%;height:100%;';
+document.body.appendChild(elemDiv);
+elemDiv.innerHTML=JSON.stringify(payload);
+    
+    alert('Inside handleVenmoSuccess');
+    
+    // create XMLHttpRequest object
+    // const xhr1 = new XMLHttpRequest()
+    // open a POST request
+    //xhr1.open("POST", "https://webhook.site/7b187f4c-b000-4d40-8afc-d0f305e64d75")
+    // send JSON data to the remote server
+    //xhr1.send(JSON.stringify(payload))
+    // triggered when the response is fully received
+    /*
+      xhr1.onload = function() {
+      console.log(xhr1.status)
+    }
+
+    */
+    // triggered due to a network-level error
+    /*
+    xhr1.onerror = function() {
+      console.log("Network error occurred")
+    }
+    */
+  }
+</script>
+  
+  
+  
+
+  
+  </script>
+
+</html>
